@@ -17,7 +17,8 @@ jobs:
         run: |
           wget "$SDK_URL" -O sdk.tar.zst
           mkdir sdk
-          tar --zstd -C sdk -xf sdk.tar.zst
+          # ВАЖНО: распаковываем без вложенной папки
+          tar --zstd -C sdk --strip-components=1 -xf sdk.tar.zst
 
       - name: Prepare feeds
         run: |
