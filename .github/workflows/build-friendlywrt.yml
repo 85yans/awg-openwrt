@@ -1,0 +1,56 @@
+name: Build AmneziaWG for FriendlyWrt 6.1.118
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SDK_URL: https://github.com/85yans/awg-openwrt/releases/download/sdk-6.1.118/openwrt-sdk-24.10.2-rockchip-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download SDK
+        run: |
+          wget "$SDK_URL" -O sdk.tar.zst
+          mkdir sdk
+          tar --zstd -C sdk -xf sdk.tar.zst
+
+      - name: Prepare feeds
+        run: |
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Copy AmneziaWG packages
+        run: |
+          cd sdk
+          cp -r ../kmod-amneziawg package/
+          cp -r ../amneziawg-tools package/
+          cp -r ../luci-proto-amneziawg package/ || true
+
+      - name: Configure SDK
+        run: |
+          cd sdk
+          make defconfig
+
+      - name: Build kmod-amneziawg
+        run: |
+          cd sdk
+          make package/kmod-amneziawg/compile V=s
+
+      - name: Build amneziawg-tools
+        run: |
+          cd sdk
+          make package/amneziawg-tools/compile V=s
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: amneziawg-friendlywrt-6.1.118
+          path: |
+            sdk/bin/packages/**/amneziawg*.ipk
+            sdk/bin/targets/**/kmods/**/kmod-amneziawg*.ipk
